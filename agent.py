@@ -27,13 +27,12 @@ class DummyAgent(object):
         self.vel = Vector2D(0, 0)
 
 class Agent(object):
-
     # NOTE: Class Object (not *instance*) variables!
     DECELERATION_SPEEDS = {
-        'slow': 0.5,
-        'mild': 0.75,
+        'slow': 0.5,        
         'normal': 1,
-        'fast': 2,
+        'mildfast': 2,
+        'fast': 5
     }
 
     #All Agent variables
@@ -42,7 +41,7 @@ class Agent(object):
     scale = Vector2D(1, 1)
     mass = 0.1
     friction = 0.01
-    max_speed = 70.0
+    max_speed = 25.0
     max_force = 35.0
 
     #flee information
@@ -76,11 +75,11 @@ class Agent(object):
     loop = False
 
     # group behaviour proportions  
-    cohesive = 0.17
+    cohesive = 0.15
     cohesiveRange = 30
-    seperated = 0.17
+    seperated = 0.20
     seperationRange = 15
-    aligned = 0.16
+    aligned = 0.15
     alignmentRange = 5
     GroupWander = 0.5
     
@@ -282,7 +281,7 @@ class Agent(object):
         ''' this behaviour is similar to seek() but it attempts to arrive at
             the target position with a zero velocity'''
         decel_rate = self.DECELERATION_SPEEDS[speed]
-        to_target = target_pos - self.pos
+        to_target = target_pos - (self.pos + self.vel)
         dist = to_target.length()
         maxSpeedScaled = Agent.max_speed * Agent.floatScale
         if not dist == 0:
@@ -309,6 +308,21 @@ class Agent(object):
         self.hunterTargVec = Vector2D(target_pos.x, target_pos.y)
         return (self.arrive(target_pos, 'normal'))
 
+    def FollowPath(self):
+        if self.path.current_pt().distance(self.pos) < Agent.waypoint_threshold * Agent.floatScale:
+            self.path.inc_current_pt()
+        if self.path.is_finished():
+            return self.arrive(self.path.current_pt(),'fast')
+        else:
+            return self.seek(self.path.current_pt())
+
+    def randomise_path(self):
+        if not Agent.world == None:
+            cx = Agent.world.cx  # width
+            cy = Agent.world.cy  # height
+            margin = min(cx, cy) * (1/6)  # use this for padding in the next line ... #previous min(cx, cy)
+            self.path.create_random_path(randint(3,16),margin,margin,cx-margin,cy-margin, Agent.loop)  # you have to figure out the parameters 
+
     def wander(self, delta):
         ''' Random wandering using a projected jitter circle. '''
         wt = self.wander_target
@@ -329,21 +343,6 @@ class Agent(object):
         # and steer towards it 
         return self.arrive(wld_target, 'normal')
 
-    def FollowPath(self):
-        if self.path.current_pt().distance(self.pos) < Agent.waypoint_threshold * Agent.floatScale:
-            self.path.inc_current_pt()
-        if self.path.is_finished():
-            return self.arrive(self.path.current_pt(),'fast')
-        else:
-            return self.seek(self.path.current_pt())
-
-    def randomise_path(self):
-        if not Agent.world == None:
-            cx = Agent.world.cx  # width
-            cy = Agent.world.cy  # height
-            margin = min(cx, cy) * (1/6)  # use this for padding in the next line ... #previous min(cx, cy)
-            self.path.create_random_path(randint(3,16),margin,margin,cx-margin,cy-margin, Agent.loop)  # you have to figure out the parameters 
-
     def cohesionForce(self):
         totalx = 0
         totaly = 0
@@ -360,8 +359,6 @@ class Agent(object):
             alliesMiddle = Vector2D(totalx, totaly)
             return self.seek(alliesMiddle) * ((cohesRange - self.pos.distance(alliesMiddle)) / cohesRange)
         return Vector2D(0,0)
-
-
     def seperationForce(self):
         total = Vector2D(0,0)
         for agent in Agent.world.agents:
@@ -377,9 +374,8 @@ class Agent(object):
         total.truncate(Agent.max_force * Agent.floatScale)
         return total
     def groupForce(self, delta):
-        force = Vector2D(0,0)
-        #force = self.cohesionForce() * Agent.cohesive
-        #force += self.seperationForce() * Agent.seperated
-        #force += self.alignmentForce() * Agent.aligned
-        force = self.wander(delta)# * Agent.GroupWander
+        force = self.cohesionForce() * Agent.cohesive
+        force += self.seperationForce() * Agent.seperated
+        force += self.alignmentForce() * Agent.aligned
+        force += self.wander(delta) * Agent.GroupWander
         return force

@@ -19,6 +19,7 @@ class World(object):
         self.paused = True
         self.next = False
         self.showinfo = True
+        self.inputgroup = 0
 
     def update(self, delta):
         if not self.paused or self.next:

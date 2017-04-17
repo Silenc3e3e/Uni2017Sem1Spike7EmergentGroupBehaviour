@@ -12,95 +12,107 @@ from vector2d import Vector2D
 from world import World
 from agent import Agent, AGENT_MODES  # Agent with seek, arrive, flee and pursuit
 
-
 def on_mouse_press(x, y, button, modifiers):
     if button == 1:  # left
         world.target = Vector2D(x, y)
 
 def on_key_press(symbol, modifiers):
-    if symbol == KEY.P:
-        world.paused = not world.paused
-    elif symbol == KEY._0:
-        world.next = True
-    elif symbol == KEY.G:
+    if symbol == KEY.G:
         add_agent()
     elif symbol == KEY.T:
         count = 0
         while count < 10:
             count += 1
             add_agent()
-    # LAB 06 TASK 1: Reset all paths to new random ones
-    elif symbol == KEY.O:
-        for agent in world.agents:
-            agent.randomise_path()
-    # Toggle debug force line info on the agent
-    elif symbol == KEY.B:
-        Agent.show_info = not Agent.show_info
-    elif symbol == KEY.I:
-        Agent.loop = not Agent.loop
     elif symbol in AGENT_MODES:
         for agent in world.agents:
             agent.mode = AGENT_MODES[symbol]
-    #SCALE
-    elif symbol == KEY.Q:
-        if Agent.floatScale > 1.0:
-            Agent.floatScale -= 1.0
-    elif symbol == KEY.W:
-        Agent.floatScale += 1.0
-    #MAX SPEED
-    elif symbol == KEY.E:
-        if Agent.max_speed > 5.0:
-            Agent.max_speed -= 5.0
-    elif symbol == KEY.R:
-        Agent.max_speed += 5.0
-    #MAX FORCE
-    elif symbol == KEY.A:
-        if Agent.max_force > 5.0:
-            Agent.max_force -= 5.0
-    elif symbol == KEY.S:
-        Agent.max_force += 5.0
-    #MASS
-    elif symbol == KEY.D:
-        if Agent.mass > 0.1:
-            Agent.mass -= 0.1
-    elif symbol == KEY.F:
-            Agent.mass += 0.1
-    #FRICTION
-    elif symbol == KEY.Z:
-        if Agent.friction > 0.01:
-            Agent.friction -= 0.01
-    elif symbol == KEY.X:
-        Agent.friction += 0.01
-    #PANIC DISTANCE
-    elif symbol == KEY.C:
-        if Agent.panicDist > 5:
-            Agent.panicDist -= 5
-    elif symbol == KEY.V:
-        Agent.panicDist += 5
-    #WAYPOINT THRESHOLD
+    
+    #displaystuff
     elif symbol == KEY.Y:
-        if Agent.waypoint_threshold > 5:
-            Agent.waypoint_threshold -= 5
-    elif symbol == KEY.U:
-        Agent.waypoint_threshold += 5
-    #WANDER DISTANCE
+        Agent.show_info = not Agent.show_info
+    elif symbol == KEY.P:
+        world.paused = not world.paused
+    elif symbol == KEY.O:
+        world.next = True
     elif symbol == KEY.H:
-        if Agent.wander_dist > 0.25:
-                Agent.wander_dist -= 0.25
-    elif symbol == KEY.J:
-        Agent.wander_dist += 0.25
-    #WANDER RADIUS
-    elif symbol == KEY.K:
-        if Agent.wander_radius > 0.25:
-            Agent.wander_radius -= 0.25
-    elif symbol == KEY.L:
-        Agent.wander_radius += 0.25
-    #WANDER JITTER
-    elif symbol == KEY.N:
-        if Agent.wander_jitter > 1:
-            Agent.wander_jitter -= 1
-    elif symbol == KEY.M:
-        Agent.wander_jitter += 1
+        world.inputgroup += 1
+        if world.inputgroup > 3:
+            world.inputgroup = 0
+    elif not world.inputgroup == 0:
+        if world.inputgroup == 1:
+            #SCALE
+            if symbol == KEY.Q:
+                if Agent.floatScale > 1.0:
+                    Agent.floatScale -= 1.0
+            elif symbol == KEY.W:
+                Agent.floatScale += 1.0
+            #MAX SPEED
+            elif symbol == KEY.E:
+                if Agent.max_speed > 5.0:
+                    Agent.max_speed -= 5.0
+            elif symbol == KEY.R:
+                Agent.max_speed += 5.0
+            #MAX FORCE
+            elif symbol == KEY.A:
+                if Agent.max_force > 5.0:
+                    Agent.max_force -= 5.0
+            elif symbol == KEY.S:
+                Agent.max_force += 5.0
+            #MASS
+            elif symbol == KEY.D:
+                if Agent.mass > 0.1:
+                    Agent.mass -= 0.1
+            elif symbol == KEY.F:
+                    Agent.mass += 0.1
+            #FRICTION
+            elif symbol == KEY.Z:
+                if Agent.friction > 0.01:
+                    Agent.friction -= 0.01
+            elif symbol == KEY.X:
+                Agent.friction += 0.01
+            #PANIC DISTANCE
+            elif symbol == KEY.C:
+                if Agent.panicDist > 5:
+                    Agent.panicDist -= 5
+            elif symbol == KEY.V:
+                Agent.panicDist += 5
+        elif world.inputgroup == 2:
+            #WAYPOINT THRESHOLD
+            if symbol == KEY.Q:
+                if Agent.waypoint_threshold > 5:
+                    Agent.waypoint_threshold -= 5
+            elif symbol == KEY.W:
+                Agent.waypoint_threshold += 5
+            #WAYPOINT LOOP
+            elif symbol == KEY.A:
+                Agent.loop = not Agent.loop
+            # LAB 06 TASK 1: Reset all paths to new random ones
+            #RANDOMIZE PATH
+            elif symbol == KEY.S:
+                for agent in world.agents:
+                    agent.randomise_path()
+        elif world.inputgroup == 3:
+            #WANDER DISTANCE
+            if symbol == KEY.Q:
+                if Agent.wander_dist > 0.25:
+                        Agent.wander_dist -= 0.25
+            elif symbol == KEY.W:
+                Agent.wander_dist += 0.25
+            #WANDER RADIUS
+            elif symbol == KEY.E:
+                if Agent.wander_radius > 0.25:
+                    Agent.wander_radius -= 0.25
+            elif symbol == KEY.R:
+                Agent.wander_radius += 0.25
+            #WANDER JITTER
+            elif symbol == KEY.A:
+                if Agent.wander_jitter > 1:
+                    Agent.wander_jitter -= 1
+            elif symbol == KEY.S:
+                Agent.wander_jitter += 1
+   
+    
 
 def add_agent():
     newAgent = Agent(world.hunter.mode)
@@ -111,23 +123,28 @@ def on_resize(cx, cy):
     world.cx = cx
     world.cy = cy
 def render_stats(world):
-    egi.text_color((1.0, 1.0, 1.0, 1))
-    depthy = -40
-    egi.text_at_pos(10, depthy, '(Q/W) Game Scale = ' + str(Agent.floatScale))
-    egi.text_at_pos(10, depthy-20, '(E/R) Max Speed = ' + str(Agent.max_speed))
-    egi.text_at_pos(10, depthy-40, '(A/S) Max Force = ' + str(Agent.max_force))
-    egi.text_at_pos(10, depthy-60, '(D/F) Mass = ' + str(Agent.mass))
-    egi.text_at_pos(10, depthy-80, '(Z/X) Friction = ' + str(Agent.friction))
-    egi.text_at_pos(10, depthy-100, '(C/V) Panic Distance = ' + str(Agent.panicDist))
-    egi.text_at_pos(10, depthy-130, '(Y/U) Waypoint Threshold = ' + str(Agent.waypoint_threshold))
-    egi.text_at_pos(10, depthy-150, '(I) Waypoint Loop = ' + str(Agent.loop))
-    egi.text_at_pos(10, depthy-170, '(O) Randomize Path')
-    egi.text_at_pos(10, depthy-200, '(H/J) Wander Distance = ' + str(Agent.wander_dist))
-    egi.text_at_pos(10, depthy-220, '(K/L) Wander radius = ' + str(Agent.wander_radius))
-    egi.text_at_pos(10, depthy-240, '(N/M) Wander jitter = ' + str(Agent.wander_jitter))
-    egi.text_at_pos(10, depthy-270, '(B) Show agent info')
-    egi.text_at_pos(10, depthy-290, '(P) Pause')
-    egi.text_at_pos(10, depthy-310, '(0) Next frame (while paused)')
+    if not world.inputgroup == 0:
+        egi.text_color((1.0, 1.0, 1.0, 1))
+        depthy = -40
+        if world.inputgroup == 1:
+            egi.text_at_pos(10, depthy, '(Q/W) Game Scale = ' + str(Agent.floatScale))
+            egi.text_at_pos(10, depthy-20, '(E/R) Max Speed = ' + str(Agent.max_speed))
+            egi.text_at_pos(10, depthy-40, '(A/S) Max Force = ' + str(Agent.max_force))
+            egi.text_at_pos(10, depthy-60, '(D/F) Mass = ' + str(Agent.mass))
+            egi.text_at_pos(10, depthy-80, '(Z/X) Friction = ' + str(Agent.friction))
+            egi.text_at_pos(10, depthy-100, '(C/V) Panic Distance = ' + str(Agent.panicDist))
+        elif world.inputgroup == 2:
+            egi.text_at_pos(10, depthy, '(Q/W) Waypoint Threshold = ' + str(Agent.waypoint_threshold))
+            egi.text_at_pos(10, depthy-20, '(A) Waypoint Loop = ' + str(Agent.loop))
+            egi.text_at_pos(10, depthy-40, '(S) Randomize Path')
+        elif world.inputgroup == 3:
+            egi.text_at_pos(10, depthy, '(Q/W) Wander Distance = ' + str(Agent.wander_dist))
+            egi.text_at_pos(10, depthy-20, '(E/R) Wander radius = ' + str(Agent.wander_radius))
+            egi.text_at_pos(10, depthy-40, '(A/S) Wander jitter = ' + str(Agent.wander_jitter))
+        egi.text_at_pos(10, depthy-130, '(Y) Show agent info')
+        egi.text_at_pos(10, depthy-150, '(P) Pause')
+        egi.text_at_pos(10, depthy-170, '(O) Next frame (while paused)')
+        egi.text_at_pos(10, depthy-190, '(H) Flick through menu')
 
 
 if __name__ == '__main__':
