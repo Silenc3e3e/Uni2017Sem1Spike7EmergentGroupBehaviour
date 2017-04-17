@@ -38,17 +38,22 @@ class Agent(object):
 
     #All Agent variables
     world = None
-    panicDist = 35
     floatScale = 10.0
     scale = Vector2D(1, 1)
     mass = 0.1
     friction = 0.01
+    max_speed = 70.0
+    max_force = 35.0
+
+    #flee information
+    panicDist = 35
+
+    #wander variables
     wander_dist = 8.25
     wander_radius = 6.75
     wander_jitter = 76.0
-    max_speed = 70.0
-    max_force = 35.0
-    loop = False
+
+    #Agent render shapes
     vehicle_shape = [
             Point2D(-1.0,  0.6),
             Point2D( 1.0,  0.0),
@@ -65,8 +70,12 @@ class Agent(object):
             Point2D( 0.9, -0.5),
             Point2D(-1.0, -0.6)
         ]
+
+    #path variables
     waypoint_threshold = 10
-    # group behaviour proportions
+    loop = False
+
+    # group behaviour proportions  
     cohesive = 0.17
     cohesiveRange = 30
     seperated = 0.17
@@ -74,6 +83,8 @@ class Agent(object):
     aligned = 0.16
     alignmentRange = 5
     GroupWander = 0.5
+    
+    # debug draw info?
     show_info = False
 
     def __init__(self, mode='seek', world=None):
@@ -91,42 +102,22 @@ class Agent(object):
         self.vel = Vector2D()
         self.heading = Vector2D(sin(dir), cos(dir))
         self.side = self.heading.perp()
-        #Agent.floatScale = scale
-        #self.scale = Vector2D(1, 1)  # easy scaling of agent size
         self.force = Vector2D()
         self.accel = Vector2D()  # current steering force
-        #Agent.mass = mass
-        #Agent.friction = friction
 
         self.hunterTargVec = Vector2D(10,10)
-        #Agent.panicDist = panicDistance
         self.hunterTarg = None
 
         # NEW WANDER INFO
         self.wander_target = Vector2D(1, 0)
-        #self.wander_dist = wanderDistance
-        #Agent.wander_radius = wanderRadius
-        #Agent.wander_jitter = wanderJitter
         #self.bRadius = 1.0 * scale Not sure what this is meant to be used for?
-
-        # limits?
-        #Agent.max_speed = maxSpeed
-        # if maxForce == None:
-        #     Agent.max_force = (Agent.max_speed/2)
-        # else:
-        #     Agent.max_force = maxForce
 
         # data for drawing this agent
         self.color = 'ORANGE'
 
         # path to follow
         self.path = Path()
-        #Agent.loop = waypointLoop
         self.randomise_path()
-        #Agent.waypoint_threshold = waypointThreshold # <-- Work out a value for this as you test!
-
-        # debug draw info?
-        #Agent.show_info# = displayInfo
 
     def calculate(self, delta):
         # reset the steering force
@@ -164,7 +155,6 @@ class Agent(object):
                         if self.hunterTarg != None:
                             self.hunterTarg.mode = 'pursuit'
                         self.hunterTarg = target
-                        #target.mode = 'flee'
                 else:
                     target = self.hunterTarg
             else:
@@ -177,13 +167,6 @@ class Agent(object):
             force = self.groupForce(delta)
         else:
             force = self.groupForce(delta)
-
-        #Proportion = 1.0
-        '''if enemy close
-            add flee proportion
-        if proportion > 0.0
-            add group steering behaviour proportionally'''
-
         self.force = force
         return force
 
@@ -358,21 +341,6 @@ class Agent(object):
             self.path.create_random_path(randint(3,16),margin,margin,cx-margin,cy-margin, Agent.loop)  # you have to figure out the parameters 
 
     def cohesionForce(self):
-        # Agent.world.paused = True #TODO. REMOVE
-        # positions = []
-        # for agent in Agent.world.agents:
-        #     if agent.pos.distance(self.pos) < Agent.cohesiveRange * Agent.floatScale:
-        #         positions.append(agent.pos)
-        # if len(positions) > 0:
-        #     total = self.pos
-        #     for position in positions:
-        #         total += position
-        #     total = total / (len(positions) + 1)
-        #     print("Cohesion Force = %s" % str(total - self.pos))
-        #     return total - self.pos
-        # else:
-        #     return Vector2D(0,0)
-
         totalx = 0
         totaly = 0
         totalnum = 0
