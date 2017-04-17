@@ -36,6 +36,8 @@ class Agent(object):
         'fast': 2,
     }
 
+    #floatScale = 10.0 #TODO make variables class based
+
     def __init__(self, world=None, scale=10.0, mass=0.1, mode='seek', friction = 0.01, panicDistance = 35, maxSpeed = 70.0, waypointThreshold = 10, waypointLoop = False, wanderDistance = 8.25, wanderRadius = 6.75, wanderJitter = 76.0, displayInfo = False, maxForce = 35.0):
         # keep a reference to the world object
         self.world = world
@@ -96,12 +98,22 @@ class Agent(object):
         self.randomise_path()  # <-- Doesn’t exist yet but you’ll create it
         self.waypoint_threshold = waypointThreshold # <-- Work out a value for this as you test!
 
+        # group behaviour proportions
+        self.cohesive = 0.17
+        self.cohesiveRange = 30
+        self.seperated = 0.17
+        self.seperationRange = self.cohesiveRange / 2.5
+        self.aligned = 0.16
+        self.alignmentRange = 5
+        self.GroupWander = 0.5
+
         # debug draw info?
         self.show_info = displayInfo
 
     def calculate(self, delta):
         # reset the steering force
         mode = self.mode
+        force = Vector2D(0,0)
         if mode == 'seek':
             force = self.seek(self.world.target)
         elif mode == 'arrive_slow':
@@ -144,9 +156,16 @@ class Agent(object):
         elif mode == 'follow_path':
             force = self.FollowPath()
         elif mode == 'wander':
-            force = self.wander(delta)
+            force = self.groupForce(delta)
         else:
-            force = self.wander(delta)
+            force = self.groupForce(delta)
+
+        #Proportion = 1.0
+        '''if enemy close
+            add flee proportion
+        if proportion > 0.0
+            add group steering behaviour proportionally'''
+
         self.force = force
         return force
 
@@ -227,9 +246,22 @@ class Agent(object):
                 egi.red_pen()
                 wnd_pos = ( self.wander_target + Vector2D( self.wander_dist * self.floatScale, 0))
                 wld_pos = self.world.transform_point(wnd_pos, self.pos, self.heading, self.side)
-                egi.circle(wld_pos, 3) 
+                egi.circle(wld_pos, 3)
+                egi.blue_pen()
+                egi.circle(self.pos, self.seperationRange * self.floatScale)
     def speed(self):
         return self.vel.length()
+
+    def FindClosest(self, agentFrom):
+        closest = None
+        ClosestDistance = 99999999
+        for agent in self.world.agents:
+            distToAgent = agent.pos.distance(agentFrom.pos)
+            if distToAgent < ClosestDistance and agent != self:# and agentToIgnore.pos.x != agentFrom.pos.x and agent.pos.y != agentFrom.pos.y:
+                closest = agent
+                ClosestDistance = distToAgent
+        return closest
+
 
     #--------------------------------------------------------------------------
 
@@ -243,7 +275,7 @@ class Agent(object):
         if (hunter_pos - self.pos).length() < self.panicDist * self.floatScale:
             desired_vel = -((hunter_pos - self.pos).normalise() * (self.max_speed * self.floatScale))
             return (desired_vel - self.vel)
-        return self.wander(delta)
+        return self.groupForce(delta)
 
     def arrive(self, target_pos, speed):
         ''' this behaviour is similar to seek() but it attempts to arrive at
@@ -300,18 +332,63 @@ class Agent(object):
         else:
             return self.seek(self.path.current_pt())
 
-    def FindClosest(self, agentFrom):
-        closest = None
-        ClosestDistance = 99999999
-        for agent in self.world.agents:
-            distToAgent = agent.pos.distance(agentFrom.pos)
-            if distToAgent < ClosestDistance and agent != self:# and agentToIgnore.pos.x != agentFrom.pos.x and agent.pos.y != agentFrom.pos.y:
-                closest = agent
-                ClosestDistance = distToAgent
-        return closest
-
     def randomise_path(self):
         cx = self.world.cx  # width
         cy = self.world.cy  # height
         margin = min(cx, cy) * (1/6)  # use this for padding in the next line ... #previous min(cx, cy)
         self.path.create_random_path(randint(3,16),margin,margin,cx-margin,cy-margin, self.loop)  # you have to figure out the parameters 
+
+    def cohesionForce(self):
+        # self.world.paused = True #TODO. REMOVE
+        # positions = []
+        # for agent in self.world.agents:
+        #     if agent.pos.distance(self.pos) < self.cohesiveRange * self.floatScale:
+        #         positions.append(agent.pos)
+        # if len(positions) > 0:
+        #     total = self.pos
+        #     for position in positions:
+        #         total += position
+        #     total = total / (len(positions) + 1)
+        #     print("Cohesion Force = %s" % str(total - self.pos))
+        #     return total - self.pos
+        # else:
+        #     return Vector2D(0,0)
+
+        totalx = 0
+        totaly = 0
+        totalnum = 0
+        cohesRange = self.cohesiveRange * self.floatScale
+        for agent in self.world.agents:
+            if agent != self and agent.pos.distance(self.pos) < cohesRange:
+                totalx += agent.pos.x
+                totaly += agent.pos.y
+                totalnum += 1
+        if totalnum > 0:
+            totalx = totalx / totalnum
+            totaly = totaly / totalnum
+            alliesMiddle = Vector2D(totalx, totaly)
+            return self.seek(alliesMiddle) * ((cohesRange - self.pos.distance(alliesMiddle)) / cohesRange)
+        return Vector2D(0,0)
+
+
+    def seperationForce(self):
+        total = Vector2D(0,0)
+        for agent in self.world.agents:
+            sepRange = self.seperationRange * self.floatScale
+            if agent.pos.distance(self.pos) < sepRange:
+                total += -(agent.pos - self.pos).normalise() * ((sepRange - agent.pos.distance(self.pos)) / sepRange) * (self.max_speed * self.floatScale)
+        return total
+    def alignmentForce(self):
+        total = self.vel
+        for agent in self.world.agents:
+            if agent.pos.distance(self.pos) < self.alignmentRange * self.floatScale:
+                total += agent.vel
+        total.truncate(self.max_force * self.floatScale)
+        return total
+    def groupForce(self, delta):
+        force = Vector2D(0,0)
+        force = self.cohesionForce() * self.cohesive
+        force = self.seperationForce() * self.seperated
+        force += self.alignmentForce() * self.aligned
+        force += self.wander(delta) * self.GroupWander
+        return force
