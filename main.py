@@ -17,9 +17,9 @@ def on_mouse_press(x, y, button, modifiers):
         world.target = Vector2D(x, y)
 
 def on_key_press(symbol, modifiers):
-    if symbol == KEY.G:
+    if symbol == KEY.J:
         add_agent()
-    elif symbol == KEY.T:
+    elif symbol == KEY.K:
         count = 0
         while count < 10:
             count += 1
@@ -37,7 +37,7 @@ def on_key_press(symbol, modifiers):
         world.next = True
     elif symbol == KEY.H:
         world.inputgroup += 1
-        if world.inputgroup > 3:
+        if world.inputgroup > 4:
             world.inputgroup = 0
     elif not world.inputgroup == 0:
         if world.inputgroup == 1:
@@ -111,9 +111,69 @@ def on_key_press(symbol, modifiers):
                     Agent.wander_jitter -= 1
             elif symbol == KEY.S:
                 Agent.wander_jitter += 1
-   
-    
-
+        elif world.inputgroup == 4:
+            #cohesive
+            if symbol == KEY.Q:
+                if Agent.cohesive > 0.0:
+                    Agent.cohesive -= 0.05
+                    if Agent.cohesive < 0.0:
+                        Agent.cohesive = 0
+            elif symbol == KEY.W:
+                if Agent.cohesive < 1:
+                    Agent.cohesive += 0.05
+            #seperated
+            elif symbol == KEY.E:
+                if Agent.seperated > 0.0:
+                    Agent.seperated -= .05
+                    if Agent.seperated < 0.0:
+                        Agent.seperated = 0
+            elif symbol == KEY.R:
+                if Agent.seperated < 1:
+                    Agent.seperated += 0.05
+            #aligned
+            elif symbol == KEY.A:
+                if Agent.aligned > 0.0:
+                    Agent.aligned -= 0.05
+                    if Agent.aligned < 0.0:
+                        Agent.aligned = 0
+            elif symbol == KEY.S:
+                if Agent.aligned < 1:
+                    Agent.aligned += 0.05
+            #GroupWander
+            elif symbol == KEY.D:
+                if Agent.GroupWander > 0:
+                    Agent.GroupWander -= 0.05
+                    if Agent.GroupWander < 0.0:
+                        Agent.GroupWander = 0
+            elif symbol == KEY.F:
+                if Agent.GroupWander < 1:
+                    Agent.GroupWander += 0.05
+            #cohesiveRange
+            elif symbol == KEY.Z:
+                if Agent.cohesiveRange > 2:
+                    Agent.cohesiveRange -= 2
+                if Agent.cohesiveRange <= Agent.seperationRange:
+                    Agent.seperationRange = Agent.cohesiveRange - 1
+            elif symbol == KEY.X:
+                Agent.cohesiveRange += 2
+            #seperationRange
+            elif symbol == KEY.C:
+                if Agent.seperationRange > 1:
+                    Agent.seperationRange -= 1
+            elif symbol == KEY.V:
+                Agent.seperationRange += 1
+                while Agent.seperationRange >= Agent.cohesiveRange:
+                    Agent.cohesiveRange = Agent.cohesiveRange + 2
+                while Agent.seperationRange >= Agent.alignmentRange:
+                    Agent.alignmentRange = Agent.cohesiveRange + 2
+            #alignmentRange
+            elif symbol == KEY.T:
+                if Agent.alignmentRange > 2:
+                    Agent.alignmentRange -= 2
+                if Agent.alignmentRange <= Agent.seperationRange:
+                    Agent.seperationRange = Agent.alignmentRange - 1
+            elif symbol == KEY.G:
+                Agent.alignmentRange += 2
 def add_agent():
     newAgent = Agent(world.hunter.mode)
     world.agents.append(newAgent)
@@ -123,9 +183,9 @@ def on_resize(cx, cy):
     world.cx = cx
     world.cy = cy
 def render_stats(world):
+    egi.text_color((1.0, 1.0, 1.0, 1))
+    depthy = -40
     if not world.inputgroup == 0:
-        egi.text_color((1.0, 1.0, 1.0, 1))
-        depthy = -40
         if world.inputgroup == 1:
             egi.text_at_pos(10, depthy, '(Q/W) Game Scale = ' + str(Agent.floatScale))
             egi.text_at_pos(10, depthy-20, '(E/R) Max Speed = ' + str(Agent.max_speed))
@@ -141,10 +201,20 @@ def render_stats(world):
             egi.text_at_pos(10, depthy, '(Q/W) Wander Distance = ' + str(Agent.wander_dist))
             egi.text_at_pos(10, depthy-20, '(E/R) Wander radius = ' + str(Agent.wander_radius))
             egi.text_at_pos(10, depthy-40, '(A/S) Wander jitter = ' + str(Agent.wander_jitter))
-        egi.text_at_pos(10, depthy-130, '(Y) Show agent info')
-        egi.text_at_pos(10, depthy-150, '(P) Pause')
-        egi.text_at_pos(10, depthy-170, '(O) Next frame (while paused)')
-        egi.text_at_pos(10, depthy-190, '(H) Flick through menu')
+        elif world.inputgroup == 4:
+            egi.text_at_pos(10, depthy, '(Q/W) Cohesion Weight = ' + str(Agent.cohesive))
+            egi.text_at_pos(10, depthy-20, '(E/R) Seperation Weight = ' + str(Agent.seperated))
+            egi.text_at_pos(10, depthy-40, '(A/S) Alightnment Weight = ' + str(Agent.aligned))
+            egi.text_at_pos(10, depthy-60, '(D/F) Wander Weight = ' + str(Agent.GroupWander))
+            egi.text_at_pos(10, depthy-80, '(Z/X) Cohesive Range = ' + str(Agent.cohesiveRange))
+            egi.text_at_pos(10, depthy-100, '(C/V) Seperation Range = ' + str(Agent.seperationRange))
+            egi.text_at_pos(10, depthy-120, '(T/G) Alignment Range = ' + str(Agent.alignmentRange))
+        egi.text_at_pos(10, depthy-150, '(Y) Show agent info')
+        egi.text_at_pos(10, depthy-170, '(P) Pause')
+        egi.text_at_pos(10, depthy-190, '(O) Next frame (while paused)')
+        egi.text_at_pos(10, depthy-230, '(J) Add Agent')
+        egi.text_at_pos(10, depthy-250, '(K) Add 10 Agents')
+    egi.text_at_pos(10, depthy-210, '(H) Flick through menu')
 
 
 if __name__ == '__main__':

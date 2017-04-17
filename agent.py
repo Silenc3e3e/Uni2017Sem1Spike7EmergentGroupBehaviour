@@ -41,8 +41,8 @@ class Agent(object):
     scale = Vector2D(1, 1)
     mass = 0.1
     friction = 0.01
-    max_speed = 25.0
-    max_force = 35.0
+    max_speed = 55.0
+    max_force = 50.0
 
     #flee information
     panicDist = 35
@@ -75,13 +75,13 @@ class Agent(object):
     loop = False
 
     # group behaviour proportions  
-    cohesive = 0.15
-    cohesiveRange = 30
-    seperated = 0.20
-    seperationRange = 15
-    aligned = 0.15
-    alignmentRange = 5
-    GroupWander = 0.5
+    cohesive = .2#.35
+    seperated = 0.5
+    aligned = 0.2#.3
+    GroupWander = 1
+    cohesiveRange = 9
+    seperationRange = 3
+    alignmentRange = 6
     
     # debug draw info?
     show_info = False
@@ -166,7 +166,6 @@ class Agent(object):
             force = self.groupForce(delta)
         else:
             force = self.groupForce(delta)
-        self.force = force
         return force
 
     def update(self, delta):
@@ -174,7 +173,7 @@ class Agent(object):
         self.force = self.calculate(delta)
         self.force.truncate(Agent.max_force * Agent.floatScale)
 
-        self.accel = self.force / (Agent.mass * Agent.floatScale)
+        self.accel = self.force#/ (Agent.mass * Agent.floatScale)
         # new velocity
         self.vel += self.accel * delta
         # proportional friction
@@ -205,6 +204,7 @@ class Agent(object):
         pts = Agent.world.transform_points(shape, self.pos, self.heading, self.side, Agent.scale * Agent.floatScale)
         # draw it!
         egi.closed_shape(pts)
+        #cap taget pos to window diameters
         if ((self.mode == 'pursuit' or self.mode == 'flee') and self == Agent.world.hunter):
             egi.green_pen()
             if self.hunterTargVec.y > Agent.world.cy:
@@ -226,16 +226,12 @@ class Agent(object):
             # velocity
             egi.grey_pen()
             egi.line_with_arrow(self.pos, self.pos + self.vel, 5) #replaced s with Agent.floatScale
-            # net (desired) change
-            # egi.white_pen()
-            # egi.line_with_arrow(self.pos+self.vel * s, self.pos+ (self.force+self.vel) * s, 5)
-            #egi.line_with_arrow(self.pos, self.pos+ (self.force+self.vel) * s, 5)
 
             # draw the path if it exists and the mode is follow
             if self.mode == 'follow_path':
                 self.path.render()
             # draw wander info?
-            elif self .mode == 'wander' :
+            elif self .mode == 'wander':
                 # calculate the center of the wander circle in front of the agent
                 wnd_pos = Vector2D( Agent.wander_dist * Agent.floatScale, 0)
                 wld_pos = self .world.transform_point(wnd_pos, self .pos, self .heading, self .side)
@@ -247,8 +243,14 @@ class Agent(object):
                 wnd_pos = ( self.wander_target + Vector2D( Agent.wander_dist * Agent.floatScale, 0))
                 wld_pos = Agent.world.transform_point(wnd_pos, self.pos, self.heading, self.side)
                 egi.circle(wld_pos, 3)
-                egi.blue_pen()
-                egi.circle(self.pos, Agent.seperationRange * Agent.floatScale)
+                
+            #draw cohesion range
+            egi.blue_pen()
+            egi.circle(self.pos, Agent.cohesiveRange * Agent.floatScale)
+            egi.red_pen()
+            egi.circle(self.pos, Agent.seperationRange * Agent.floatScale)
+            egi.green_pen()
+            egi.circle(self.pos, Agent.alignmentRange * Agent.floatScale)
     def speed(self):
         return self.vel.length()
 
@@ -343,39 +345,50 @@ class Agent(object):
         # and steer towards it 
         return self.arrive(wld_target, 'normal')
 
-    def cohesionForce(self):
-        totalx = 0
-        totaly = 0
-        totalnum = 0
+    def cohesionForce(self, delta):
+        totalx = self.pos.x
+        totaly = self.pos.y
+        totalnum = 1
         cohesRange = Agent.cohesiveRange * Agent.floatScale
         for agent in Agent.world.agents:
             if agent != self and agent.pos.distance(self.pos) < cohesRange:
                 totalx += agent.pos.x
                 totaly += agent.pos.y
                 totalnum += 1
-        if totalnum > 0:
+        if totalnum > 1:
             totalx = totalx / totalnum
             totaly = totaly / totalnum
             alliesMiddle = Vector2D(totalx, totaly)
-            return self.seek(alliesMiddle) * ((cohesRange - self.pos.distance(alliesMiddle)) / cohesRange)
+            return self.seek(alliesMiddle) #* ((cohesRange - self.pos.distance(alliesMiddle)) / cohesRange)
         return Vector2D(0,0)
     def seperationForce(self):
         total = Vector2D(0,0)
         for agent in Agent.world.agents:
             sepRange = Agent.seperationRange * Agent.floatScale
             if agent.pos.distance(self.pos) < sepRange:
-                total += -(agent.pos - self.pos).normalise() * ((sepRange - agent.pos.distance(self.pos)) / sepRange) * (Agent.max_speed * Agent.floatScale)
+                total += -(agent.pos - self.pos).normalise() * (Agent.max_speed * Agent.floatScale)# * ((sepRange - agent.pos.distance(self.pos)) / sepRange)
         return total
-    def alignmentForce(self):
+    def alignmentForce(self):#TODO Fix this. doesn't work
         total = self.vel
+        count = 1
         for agent in Agent.world.agents:
             if agent.pos.distance(self.pos) < Agent.alignmentRange * Agent.floatScale:
-                total += agent.vel
-        total.truncate(Agent.max_force * Agent.floatScale)
+                total += agent.heading
+                count += 1
+        total = total / count
+        total = total.truncate(Agent.max_force * Agent.floatScale)
         return total
     def groupForce(self, delta):
-        force = self.cohesionForce() * Agent.cohesive
-        force += self.seperationForce() * Agent.seperated
-        force += self.alignmentForce() * Agent.aligned
-        force += self.wander(delta) * Agent.GroupWander
+        force = Vector2D(0,0)
+        if(Agent.cohesive > 0):
+            force += (self.cohesionForce(delta) * Agent.cohesive)
+        #print("cohesion %s" % str(force))
+        if(Agent.seperated > 0):
+            force += (self.seperationForce() * Agent.seperated)
+        #print ("seperation %s" % str(self.seperationForce() * Agent.seperated))
+        if(Agent.aligned > 0):
+            force += (self.alignmentForce() * Agent.aligned)
+        #print ("alignment %s" % str(self.alignmentForce() * Agent.aligned))
+        if(Agent.GroupWander > 0):
+            force += (self.wander(delta) * Agent.GroupWander)
         return force

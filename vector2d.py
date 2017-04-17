@@ -90,6 +90,7 @@ class Vector2D(object):
         if self.length() > maxlength:
             self.normalise()  # unit vector length = 1.0
             self *= maxlength  # so length is 1.0 * maxlength
+        return self
 
     def distance(self, v2):
         ''' the distance between self and v2 vector '''
