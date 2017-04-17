@@ -284,16 +284,20 @@ class Agent(object):
         decel_rate = self.DECELERATION_SPEEDS[speed]
         to_target = target_pos - self.pos
         dist = to_target.length()
+        maxSpeedScaled = Agent.max_speed * Agent.floatScale
         if not dist == 0:
             # calculate the speed required to reach the target given the
             # desired deceleration rate
-            speed = dist * decel_rate
+            #speed = dist * decel_rate
             # make sure the velocity does not exceed the max
-            speed = min(speed, (Agent.max_speed * Agent.floatScale))
+            #speed = min(speed, (maxSpeedScaled))
             # from here proceed just like Seek except we don't need to
             # normalize the to_target vector because we have already gone to the
             # trouble of calculating its length for dist.
-            desired_vel = to_target * (speed / dist)
+            proportion = 1.0
+            if dist < maxSpeedScaled:
+                proportion = dist / maxSpeedScaled
+            desired_vel = to_target.normalise() * maxSpeedScaled * proportion * decel_rate
             return (desired_vel - self.vel)
         return Vector2D(0, 0)
 
@@ -310,7 +314,7 @@ class Agent(object):
         wt = self.wander_target
         # this behaviour is dependent on the update rate, so this line must
         # be included when using time independent framerate.
-        jitter_tts = Agent.wander_jitter * delta # this time slice
+        jitter_tts = Agent.wander_jitter * delta * Agent.floatScale # this time slice
         # first, add a small random vector to the target's position
         wt += Vector2D(uniform(-1,1) * jitter_tts, uniform(-1,1) * jitter_tts)
         # re-project this new vector back on to a unit circle
@@ -374,8 +378,8 @@ class Agent(object):
         return total
     def groupForce(self, delta):
         force = Vector2D(0,0)
-        force = self.cohesionForce() * Agent.cohesive
-        force = self.seperationForce() * Agent.seperated
-        force += self.alignmentForce() * Agent.aligned
-        force += self.wander(delta) * Agent.GroupWander
+        #force = self.cohesionForce() * Agent.cohesive
+        #force += self.seperationForce() * Agent.seperated
+        #force += self.alignmentForce() * Agent.aligned
+        force = self.wander(delta)# * Agent.GroupWander
         return force
