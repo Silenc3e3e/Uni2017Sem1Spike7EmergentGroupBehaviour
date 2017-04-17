@@ -274,10 +274,15 @@ class Agent(object):
 
     def flee(self, hunter_pos, delta):
         ''' move away from hunter position '''
-        if (hunter_pos - self.pos).length() < Agent.panicDist * Agent.floatScale:
-            desired_vel = -((hunter_pos - self.pos).normalise() * (Agent.max_speed * Agent.floatScale))
-            return (desired_vel - self.vel)
-        return self.groupForce(delta)
+        groupForced = self.groupForce(delta)
+        hunterDist = (hunter_pos - self.pos).length()
+        scaledPanicDist = Agent.panicDist * Agent.floatScale
+        if hunterDist < scaledPanicDist:
+            desired_vel = (-((hunter_pos - self.pos).normalise() * (Agent.max_speed * Agent.floatScale))) - self.vel
+            proportion = hunterDist / scaledPanicDist
+
+            return (desired_vel * (1 - proportion) + groupForced * (proportion))
+        return groupForced
 
     def arrive(self, target_pos, speed):
         ''' this behaviour is similar to seek() but it attempts to arrive at
@@ -368,7 +373,7 @@ class Agent(object):
             if agent.pos.distance(self.pos) < sepRange:
                 total += -(agent.pos - self.pos).normalise() * (Agent.max_speed * Agent.floatScale)# * ((sepRange - agent.pos.distance(self.pos)) / sepRange)
         return total
-    def alignmentForce(self):#TODO Fix this. doesn't work
+    def alignmentForce(self):
         total = self.vel
         count = 1
         for agent in Agent.world.agents:
