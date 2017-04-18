@@ -83,7 +83,7 @@ class Agent(object):
     seperationRange = 3
     alignmentRange = 6
 
-    distanceFromWall = 20
+    distanceFromWall = 10
     
     # debug draw info?
     show_info = False
@@ -422,33 +422,22 @@ class Agent(object):
         elif futurePos.y > Agent.world.cy:
             futurePos.y = Agent.world.cy
 
-        flipx = -1
-        flipy = -1
-        if self.pos.x < 0 or self.pos.x > Agent.world.cx:
-            flipx = 1
-        if self.pos.y < 0 or self.pos.y > Agent.world.cy:
-            flipy = 1
-
         #x diff
         if futurePos.x < scaleddist:
-            propfutx = futurePos.x if futurePos.x >= 0 else 0
-            proportion = ((scaleddist - propfutx) / scaleddist)
+            proportion = ((scaleddist - futurePos.x) / scaleddist)
             totalProportion = proportion
-            totalVec = proportion * flipx * (self.seek(Vector2D(0, self.pos.y)))
+            totalVec = Vector2D(1,0) * Agent.max_speed * Agent.floatScale * proportion
         elif futurePos.x > Agent.world.cx - scaleddist:
-            propfutx = futurePos.x if futurePos.x <= Agent.world.cx else Agent.world.cx
-            proportion = (propfutx + scaleddist - Agent.world.cx) / scaleddist
+            proportion = (futurePos.x + scaleddist - Agent.world.cx) / scaleddist
             totalProportion = proportion
-            totalVec = proportion * flipx * (self.seek(Vector2D(Agent.world.cx, self.pos.y)))
+            totalVec = Vector2D(-1,0) * Agent.max_speed * Agent.floatScale * proportion
         #y diff
         if futurePos.y < scaleddist:
-            propfuty = futurePos.y if futurePos.y >= 0 else 0
-            proportion = (scaleddist - propfuty) / scaleddist
+            proportion = (scaleddist - futurePos.y) / scaleddist
             totalProportion = max(proportion, totalProportion)
-            totalVec =proportion * flipx * (self.seek(Vector2D(self.pos.x, 0)))
+            totalVec += Vector2D(0,1) * Agent.max_speed * Agent.floatScale * proportion
         elif futurePos.y > Agent.world.cy - scaleddist:
-            propfuty = futurePos.y if futurePos.y <= Agent.world.cy else Agent.world.cy
-            proportion = (propfuty + scaleddist - Agent.world.cy) / scaleddist
-            totalProportion = proportion
-            totalVec = proportion * flipx * (self.seek(Vector2D(self.pos.x, Agent.world.cy)))
+            proportion = (futurePos.y + scaleddist - Agent.world.cy) / scaleddist
+            totalProportion = max(proportion, totalProportion)
+            totalVec += Vector2D(0,-1) * Agent.max_speed * Agent.floatScale * proportion
         return [totalVec, totalProportion]
