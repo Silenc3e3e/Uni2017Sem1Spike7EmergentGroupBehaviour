@@ -82,6 +82,8 @@ class Agent(object):
     cohesiveRange = 9
     seperationRange = 3
     alignmentRange = 6
+
+    distanceFromWall = 20
     
     # debug draw info?
     show_info = False
@@ -166,6 +168,13 @@ class Agent(object):
             force = self.groupForce(delta)
         else:
             force = self.groupForce(delta)
+        forcewindow = self.windowEdge()
+        if forcewindow[1] > 0:
+            #print ("forcewindow %s prop = %s" % (str(forcewindow[0]) , str(forcewindow[1])))
+            if ((not forcewindow[1] == 1) and (self.pos.x < 0 or self.pos.x > Agent.world.cx or self.pos.y < 0 or self.pos.y > Agent.world.cy)) or forcewindow[1] > 1:
+                print ("error %s" % forcewindow[1])
+            return ((force * (1 - forcewindow[1])) + (forcewindow[0]))
+            
         return force
 
     def update(self, delta):
@@ -188,7 +197,7 @@ class Agent(object):
             self.heading = self.vel.get_normalised()
             self.side = self.heading.perp()
         # treat world as continuous space - wrap new position if needed
-        Agent.world.wrap_around(self.pos)
+        #Agent.world.wrap_around(self.pos)
 
     def render(self, color=None):
         ''' Draw the triangle agent with color'''
@@ -397,3 +406,49 @@ class Agent(object):
         if(Agent.GroupWander > 0):
             force += (self.wander(delta) * Agent.GroupWander)
         return force
+
+    def windowEdge(self):
+        totalVec = Vector2D(0,0)
+        scaleddist = Agent.distanceFromWall * Agent.floatScale
+        totalProportion = 0
+        futurePos = self.pos + self.vel
+        
+        if futurePos.x < 0:
+            futurePos.x = 0
+        elif futurePos.x > Agent.world.cx:
+            futurePos.x = Agent.world.cx
+        if futurePos.y < 0:
+            futurePos.y = 0
+        elif futurePos.y > Agent.world.cy:
+            futurePos.y = Agent.world.cy
+
+        flipx = -1
+        flipy = -1
+        if self.pos.x < 0 or self.pos.x > Agent.world.cx:
+            flipx = 1
+        if self.pos.y < 0 or self.pos.y > Agent.world.cy:
+            flipy = 1
+
+        #x diff
+        if futurePos.x < scaleddist:
+            propfutx = futurePos.x if futurePos.x >= 0 else 0
+            proportion = ((scaleddist - propfutx) / scaleddist)
+            totalProportion = proportion
+            totalVec = proportion * flipx * (self.seek(Vector2D(0, self.pos.y)))
+        elif futurePos.x > Agent.world.cx - scaleddist:
+            propfutx = futurePos.x if futurePos.x <= Agent.world.cx else Agent.world.cx
+            proportion = (propfutx + scaleddist - Agent.world.cx) / scaleddist
+            totalProportion = proportion
+            totalVec = proportion * flipx * (self.seek(Vector2D(Agent.world.cx, self.pos.y)))
+        #y diff
+        if futurePos.y < scaleddist:
+            propfuty = futurePos.y if futurePos.y >= 0 else 0
+            proportion = (scaleddist - propfuty) / scaleddist
+            totalProportion = max(proportion, totalProportion)
+            totalVec =proportion * flipx * (self.seek(Vector2D(self.pos.x, 0)))
+        elif futurePos.y > Agent.world.cy - scaleddist:
+            propfuty = futurePos.y if futurePos.y <= Agent.world.cy else Agent.world.cy
+            proportion = (propfuty + scaleddist - Agent.world.cy) / scaleddist
+            totalProportion = proportion
+            totalVec = proportion * flipx * (self.seek(Vector2D(self.pos.x, Agent.world.cy)))
+        return [totalVec, totalProportion]
