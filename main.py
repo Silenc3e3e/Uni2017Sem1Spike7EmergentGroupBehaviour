@@ -37,7 +37,7 @@ def on_key_press(symbol, modifiers):
         world.next = True
     elif symbol == KEY.H:
         world.inputgroup += 1
-        if world.inputgroup > 4:
+        if world.inputgroup > 5:
             world.inputgroup = 0
     elif not world.inputgroup == 0:
         if world.inputgroup == 1:
@@ -209,12 +209,14 @@ def render_stats(world):
             egi.text_at_pos(10, depthy-80, '(Z/X) Cohesive Range = ' + str(Agent.cohesiveRange))
             egi.text_at_pos(10, depthy-100, '(C/V) Seperation Range = ' + str(Agent.seperationRange))
             egi.text_at_pos(10, depthy-120, '(T/G) Alignment Range = ' + str(Agent.alignmentRange))
-        egi.text_at_pos(10, depthy-150, '(Y) Show agent info')
-        egi.text_at_pos(10, depthy-170, '(P) Pause')
-        egi.text_at_pos(10, depthy-190, '(O) Next frame (while paused)')
-        egi.text_at_pos(10, depthy-230, '(J) Add Agent')
-        egi.text_at_pos(10, depthy-250, '(K) Add 10 Agents')
-    egi.text_at_pos(10, depthy-210, '(H) Flick through menu')
+        if not world.inputgroup == 5: 
+            egi.text_at_pos(10, depthy-150, '(Y) Show agent info')
+            egi.text_at_pos(10, depthy-170, '(P) Pause')
+            egi.text_at_pos(10, depthy-190, '(O) Next frame (while paused)')
+            egi.text_at_pos(10, depthy-230, '(J) Add Agent')
+            egi.text_at_pos(10, depthy-250, '(K) Add 10 Agents')
+    if not world.inputgroup == 5:
+        egi.text_at_pos(10, depthy-210, '(H) Flick through menu')
 
 
 if __name__ == '__main__':

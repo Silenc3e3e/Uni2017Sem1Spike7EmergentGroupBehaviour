@@ -89,6 +89,7 @@ class Agent(object):
     show_info = False
 
     def __init__(self, mode='seek', world=None):
+        self.nearbyAgents = []
         # keep a reference to the world object
         if not world == None:
             Agent.world = world
@@ -171,13 +172,20 @@ class Agent(object):
         forcewindow = self.windowEdge()
         if forcewindow[1] > 0:
             #print ("forcewindow %s prop = %s" % (str(forcewindow[0]) , str(forcewindow[1])))
-            if ((not forcewindow[1] == 1) and (self.pos.x < 0 or self.pos.x > Agent.world.cx or self.pos.y < 0 or self.pos.y > Agent.world.cy)) or forcewindow[1] > 1:
-                print ("error %s" % forcewindow[1])
+            #if ((not forcewindow[1] == 1) and (self.pos.x < 0 or self.pos.x > Agent.world.cx or self.pos.y < 0 or self.pos.y > Agent.world.cy)) or forcewindow[1] > 1:
+                #print ("error %s" % forcewindow[1])
             return ((force * (1 - forcewindow[1])) + (forcewindow[0]))
             
         return force
 
     def update(self, delta):
+        #MUST be done at the start of the update function
+        largestAgentScanRange = max(Agent.panicDist, Agent.wander_dist, Agent.cohesiveRange, Agent.seperationRange, Agent.alignmentRange) * Agent.floatScale
+        self.nearbyAgents = []
+        for agent in Agent.world.agents:
+            if agent.pos.distance(self.pos) < largestAgentScanRange:
+                self.nearbyAgents.append(agent)
+
         ''' update vehicle position and orientation '''
         self.force = self.calculate(delta)
         self.force.truncate(Agent.max_force * Agent.floatScale)
@@ -364,7 +372,7 @@ class Agent(object):
         totaly = self.pos.y
         totalnum = 1
         cohesRange = Agent.cohesiveRange * Agent.floatScale
-        for agent in Agent.world.agents:
+        for agent in self.nearbyAgents:
             if agent != self and agent.pos.distance(self.pos) < cohesRange:
                 totalx += agent.pos.x
                 totaly += agent.pos.y
@@ -377,7 +385,7 @@ class Agent(object):
         return Vector2D(0,0)
     def seperationForce(self):
         total = Vector2D(0,0)
-        for agent in Agent.world.agents:
+        for agent in self.nearbyAgents:
             sepRange = Agent.seperationRange * Agent.floatScale
             if agent.pos.distance(self.pos) < sepRange:
                 total += -(agent.pos - self.pos).normalise() * (Agent.max_speed * Agent.floatScale)# * ((sepRange - agent.pos.distance(self.pos)) / sepRange)
@@ -385,7 +393,7 @@ class Agent(object):
     def alignmentForce(self):
         total = self.vel
         count = 1
-        for agent in Agent.world.agents:
+        for agent in self.nearbyAgents:
             if agent.pos.distance(self.pos) < Agent.alignmentRange * Agent.floatScale:
                 total += agent.heading
                 count += 1
