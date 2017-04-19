@@ -180,7 +180,7 @@ class Agent(object):
 
     def update(self, delta):
         #MUST be done at the start of the update function
-        largestAgentScanRange = max(Agent.panicDist, Agent.wander_dist, Agent.cohesiveRange, Agent.seperationRange, Agent.alignmentRange) * Agent.floatScale
+        largestAgentScanRange = max(Agent.cohesiveRange, Agent.seperationRange, Agent.alignmentRange) * Agent.floatScale
         self.nearbyAgents = []
         for agent in Agent.world.agents:
             if agent.pos.distance(self.pos) < largestAgentScanRange:
